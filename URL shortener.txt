@@ -1,0 +1,33 @@
+import hashlib
+import string
+url_mapping = {}
+BASE62 = string.digits + string.ascii_letters
+
+def base62_encode(num):
+    """Encodes a number into Base62."""
+    encoded = []
+    while num > 0:
+        remainder = num % 62
+        encoded.append(BASE62[remainder])
+        num //= 62
+    return ''.join(encoded[::-1])
+
+def shorten_url(long_url):
+    """Generate a short URL using hashing & Base62 encoding."""
+    url_hash = hashlib.md5(long_url.encode()).hexdigest() 
+    unique_id = int(url_hash[:8], 16) 
+    short_code = base62_encode(unique_id)
+    short_url = f"http://short.ly/{short_code}"
+    url_mapping[short_code] = long_url
+    
+    return short_url
+
+def retrieve_url(short_code):
+    """Retrieve the original URL from the short code."""
+    return url_mapping.get(short_code, "URL not found")
+long_url = input("Enter the long URL: ")
+short_url = shorten_url(long_url)
+print("Shortened URL:", short_url)
+short_code = short_url.split("/")[-1]
+original_url = retrieve_url(short_code)
+print("Original URL:", original_url)
