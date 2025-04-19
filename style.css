@@ -1,0 +1,36 @@
+
+body {
+    font-family: Viner Hand ITC, sans-serif;
+    padding: 20px;
+    background-color: #e6e6fa;
+}
+
+#chat-box {
+    background: lavender;
+    padding: 20px;
+    border-radius: 10px;
+    width: 400px;
+    margin: auto;
+    box-shadow: 0 0 10px #ccc;
+}
+
+#messages {
+    list-style: none;
+    padding: 0;
+    max-height: 300px;
+    overflow-y: scroll;
+}
+
+#messages li {
+    padding: 5px;
+    border-bottom: 1px solid #ddd;
+}
+
+#msg-input {
+    width: 70%;
+    padding: 10px;
+}
+
+button {
+    padding: 10px 15px;
+}
