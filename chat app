@@ -1,0 +1,128 @@
+from flask import Flask, render_template_string
+from flask_socketio import SocketIO, send
+from flask_sqlalchemy import SQLAlchemy
+
+app = Flask(_name_)
+app.config['SECRET_KEY'] = 'secret!'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///chat.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db = SQLAlchemy(app)
+socketio = SocketIO(app)
+class Message(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(100), nullable=False)
+    content = db.Column(db.String(500), nullable=False)
+
+# Inline HTML and CSS (No template files needed)
+html_code = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Chat App</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f6f9;
+            display: flex;
+            justify-content: center;
+            padding-top: 30px;
+        }
+        .chat-container {
+            width: 500px;
+            background: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        #messages {
+            height: 300px;
+            overflow-y: auto;
+            padding: 10px;
+            border: 1px solid #ccc;
+            background: #fafafa;
+            margin-bottom: 10px;
+            border-radius: 8px;
+        }
+        .input-area {
+            display: flex;
+            gap: 10px;
+        }
+        #chat-input {
+            flex: 1;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #aaa;
+        }
+        #send-btn {
+            padding: 10px 15px;
+            background-color: #2d89ef;
+            color: white;
+            border: none;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <h1>💬 Real-Time Chat</h1>
+        <div id="messages">
+            {% for msg in messages %}
+                <div><strong>{{ msg.username }}:</strong> {{ msg.content }}</div>
+            {% endfor %}
+        </div>
+        <div class="input-area">
+            <input type="text" id="chat-input" placeholder="Type a message...">
+            <button id="send-btn">Send</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.0.1/socket.io.min.js"></script>
+    <script>
+        const socket = io();
+        const msgBox = document.getElementById('messages');
+
+        socket.on('message', function(msg) {
+            const newDiv = document.createElement('div');
+            newDiv.innerHTML = "<strong>Anonymous:</strong> " + msg;
+            msgBox.appendChild(newDiv);
+            msgBox.scrollTop = msgBox.scrollHeight;
+        });
+
+        document.getElementById('send-btn').onclick = function() {
+            const input = document.getElementById('chat-input');
+            const msg = input.value;
+            if (msg.trim()) {
+                socket.send(msg);
+                input.value = '';
+            }
+        };
+    </script>
+</body>
+</html>
+"""
+
+# Home route
+@app.route('/')
+def index():
+    # Retrieve all messages from the database
+    messages = Message.query.all()
+    return render_template_string(html_code, messages=messages)
+
+# Handle incoming messages
+@socketio.on('message')
+def handle_message(msg):
+    # Save message to the database
+    db.session.add(Message(username='Anonymous', content=msg))
+    db.session.commit()
+    # Broadcast message to all connected clients
+    send(msg, broadcast=True)
+
+# Create the database (only run this once to initialize the tables)
+with app.app_context():
+    db.create_all()
+
+# Run the Flask app
+if _name_ == '_main_':
+    socketio.run(app, debug=False, allow_unsafe_werkzeug=True)
